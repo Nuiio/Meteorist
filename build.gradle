@@ -61,7 +61,8 @@ dependencies {
     devImplementation 'com.github.javaparser:javaparser-core:3.27.0'
 
     // Catppuccin theme TODO rename later
-    modCompileOnly "com.github.X-C-0.catpuccin-addon:${project.properties['minecraft_version']}:stonecutter-SNAPSHOT"
+    // Catppuccin theme TODO rename later
+    modCompileOnly "com.github.X-C-0.catppuccin-addon:${project.properties['minecraft_version']}:v2.0.3"
 }
 
 tasks.withType(JavaCompile).configureEach {
