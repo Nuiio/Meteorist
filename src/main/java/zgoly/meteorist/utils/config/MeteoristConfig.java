@@ -4,11 +4,9 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import static zgoly.meteorist.Meteorist.MOD_ID;
 import static zgoly.meteorist.utils.MeteoristUtils.removeInvalidChars;

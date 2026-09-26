@@ -24,6 +24,7 @@ import net.minecraft.world.phys.HitResult;
 import zgoly.meteorist.Meteorist;
 import zgoly.meteorist.utils.MeteoristUtils;
 
+import java.util.Objects;
 import java.util.Set;
 
 public class ZKillaura extends Module {
@@ -290,10 +291,10 @@ public class ZKillaura extends Module {
         if (hitResult == null || hitResult.getType() != HitResult.Type.ENTITY) return;
 
         Entity entity = ((EntityHitResult) hitResult).getEntity();
-        LivingEntity livingEntity = (LivingEntity) entity;
+        LivingEntity livingEntity = entity instanceof LivingEntity ? (LivingEntity) entity : null;
 
         // Using labeled breaks instead of returns so the code can run in one tick, but I think there should be a simpler way to do this
-        if (shieldMode.get() == ShieldMode.Break) {
+        if (shieldMode.get() == ShieldMode.Break && livingEntity != null) {
             if (shieldState == ShieldState.Idle && livingEntity.isBlocking()) {
                 FindItemResult axe = InvUtils.findInHotbar(stack -> stack.getItem() instanceof AxeItem);
                 if (axe.found()) {
@@ -362,19 +363,19 @@ public class ZKillaura extends Module {
         if (currHitSpeedMode != HitSpeedMode.None && (mc.player.getAttackStrengthScale(hitSpeed) * 17.0F) < 16)
             return;
 
-        mc.gameMode.attack(mc.player, livingEntity);
+        mc.gameMode.attack(mc.player, entity);
         if (swingHand.get()) mc.player.swing(InteractionHand.MAIN_HAND);
 
         if (currOnFallMode == OnFallMode.RandomValue) {
             float min = Math.min(onFallMinRandomValue.get().floatValue(), onFallMaxRandomValue.get().floatValue());
             float max = Math.max(onFallMinRandomValue.get().floatValue(), onFallMaxRandomValue.get().floatValue());
-            randomOnFallFloat = min + mc.level.random.nextFloat() * (max - min);
+            randomOnFallFloat = min + mc.level.getRandom().nextFloat() * (max - min);
         }
 
         if (currHitSpeedMode == HitSpeedMode.RandomValue) {
             float min = Math.min(hitSpeedMinRandomValue.get().floatValue(), hitSpeedMaxRandomValue.get().floatValue());
             float max = Math.max(hitSpeedMinRandomValue.get().floatValue(), hitSpeedMaxRandomValue.get().floatValue());
-            randomHitSpeedFloat = min + mc.level.random.nextFloat() * (max - min);
+            randomHitSpeedFloat = min + mc.level.getRandom().nextFloat() * (max - min);
         }
     }
 
@@ -387,40 +388,24 @@ public class ZKillaura extends Module {
     private int calculateDelay(DelayMode mode, int value, int minRandom, int maxRandom) {
         return switch (mode) {
             case Value -> value;
-            case RandomValue -> minRandom + mc.level.random.nextInt(maxRandom - minRandom + 1);
+            case RandomValue -> minRandom + mc.level.getRandom().nextInt(maxRandom - minRandom + 1);
         };
     }
 
     private boolean entityCheck(Entity entity) {
-        if (entity.equals(mc.player) || entity.equals(mc.getCameraEntity())) return false;
-        if ((entity instanceof LivingEntity livingEntity && livingEntity.isDeadOrDying()) || !entity.isAlive())
-            return false;
-
+        if (entity == mc.player || entity == mc.getCameraEntity()) return false;
+        if (!entity.isAlive()) return false;
+        if (entity instanceof LivingEntity livingEntity && livingEntity.isDeadOrDying()) return false;
         if (!entities.get().contains(entity.getType())) return false;
         if (ignoreNamed.get() && entity.hasCustomName()) return false;
 
-        if (ignoreTamed.get()) {
-            if (entity instanceof OwnableEntity tameable
-                    && tameable.getOwner() != null
-                    && tameable.getOwner().equals(mc.player)
-            ) return false;
+        if (ignoreTamed.get()
+                && entity instanceof OwnableEntity ownable
+                && Objects.equals(ownable.getOwner(), mc.player)) {
+            return false;
         }
 
-        if (ignorePassive.get()) {
-            switch (entity) {
-                case EnderMan enderman when !enderman.isCreepy() -> {
-                    return false;
-                }
-                case ZombifiedPiglin piglin when !piglin.isAggressive() -> {
-                    return false;
-                }
-                case Wolf wolf when !wolf.isAggressive() -> {
-                    return false;
-                }
-                default -> {
-                }
-            }
-        }
+        if (ignorePassive.get() && isPassive(entity)) return false;
 
         if (entity instanceof Player player) {
             if (ignoreCreative.get() && player.isCreative()) return false;
@@ -437,6 +422,15 @@ public class ZKillaura extends Module {
         }
 
         return true;
+    }
+
+    private boolean isPassive(Entity entity) {
+        return switch (entity) {
+            case EnderMan enderman -> !enderman.isCreepy();
+            case ZombifiedPiglin piglin -> !piglin.isAggressive();
+            case Wolf wolf -> !wolf.isAggressive();
+            default -> false;
+        };
     }
 
     public enum OnFallMode {
