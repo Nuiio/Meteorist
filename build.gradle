@@ -2,10 +2,12 @@ plugins {
     id 'fabric-loom' version "${loom_version}"
 }
 
+group = project.maven_group
+version = "$minecraft_version-$mod_version"
+
 base {
     archivesName = project.archives_base_name
-    group = project.maven_group
-    version = "$minecraft_version-$mod_version"
+
 }
 
 repositories {
